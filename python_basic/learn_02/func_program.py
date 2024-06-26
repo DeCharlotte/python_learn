@@ -1,4 +1,4 @@
-
+import functools
 from functools import reduce
 
 """
@@ -293,3 +293,126 @@ def inc_2():
         return x
     return fn
 
+
+# 利用闭包返回一个计数器函数，每次调用它返回递增整数
+# 1.创建一个包含计数变量的外部函数
+# 2.在外部函数中定义一个内部函数，内部函数访问、修改计数变量；
+# 3.返回这个内部函数作为闭包
+
+
+def createCounter():
+    i = 0
+    def count():
+        nonlocal i
+        i += 1
+        return i
+
+    return count
+
+
+counterA = createCounter()
+print(counterA(), counterA())  # 1 2
+
+"""
+当我们在传入函数时，有些时候，不需要显式地定义函数，直接传入匿名函数更方便
+关键字lambda表示匿名函数，冒号前面的x表示函数参数。
+匿名函数有个限制，就是只能有一个表达式，不用写return，返回值就是该表达式的结果。
+用匿名函数有个好处，因为函数没有名字，不必担心函数名冲突
+"""
+
+f = lambda x: x * x
+# 匿名函数也是一个函数对象,可以赋给变量
+print(f)  # <function <lambda> at 0x0000020DE7535760>
+print(f(2))  # 4
+
+
+def build(x, y):
+    # 匿名表达式作为返回值
+    return lambda : x * x + y * y
+
+
+print(build(1, 2))  # <function build.<locals>.<lambda> at 0x000001FEDE7E5800>
+print(build(1, 2)())  # 5
+
+"""
+在代码运行期间动态增加功能的方式，称之为“装饰器”（Decorator）
+本质上，decorator就是一个返回函数的高阶函数
+"""
+
+
+def now():
+    print('2024-6-26')
+
+
+f = now
+# 函数对象有一个 __name__ 属性，可以拿到函数名字
+print(now.__name__)  # now
+print(f.__name__)  # now
+
+# 增强now()函数的功能，比如，在函数调用前后自动打印日志，但又不希望修改now()函数的定义
+
+
+def log(func):  # decorator:接受一个函数作为参数，并返回一个函数
+    # 把原始函数的__name__等属性复制到wrapper()函数中，否则，有些依赖函数签名的代码执行就会出错
+    @functools.wraps(func)  # 保留原函数的元数据，如名字和文档字符串
+    def wrapper(*args, **kw):  # 可以接受任意参数的调用
+        print('call %s()' % func.__name__)
+        return func(*args, **kw)
+    return wrapper
+
+
+@log  # now = log(now)
+def now():
+    print('2024-6-26')
+
+
+print(now.__name__)  # now
+now()  # 实际执行log中的wrapper()  call now() \n 2024-6-26
+
+# decorator本身需要传入参数，那就需要编写一个返回decorator的高阶函数
+
+
+def log(text):
+    def decorator(func):
+        @functools.wraps(func)  # 把now的__name__复制到wrapper中
+        def wrapper(*args, **kw):
+            print('%s %s()' % (text, func.__name__))
+            return func(*args, **kw)
+        return wrapper
+    return decorator
+
+
+@log('execute')  # now = log('execute')(now)
+def now():
+    print('2024-6-26')
+
+
+print(now.__name__)  # now
+now()  # execute now() \n 2024-6-26
+
+"""
+Python的functools模块提供了很多有用的功能，其中一个就是偏函数（Partial function）
+当函数的参数个数太多，需要简化时，使用functools.partial可以创建一个新的函数，这个新函数可以固定住原函数的部分参数，
+从而在调用时更简单
+"""
+
+print(int('123'))  # 123  默认按十进制转
+print(int('123', base=8))  # 83
+
+# 假设要转换大量的二进制字符串，每次都传入int(x, base=2)非常麻烦，可以定义一个int2()的函数，默认把base=2传进去
+
+
+def int_2(x, base=2):
+    return int(x, base=base)
+
+
+print(int_2('111'))  # 7
+# functools.partial就是帮助我们创建一个偏函数的，不需要我们自己定义int_2()
+# functools.partial(参数1，参数2，参数3)
+# 参数1：函数对象
+# 参数2：*args 可变参数，接收list tuple
+# 参数3：**kw 关键字参数，接收dict
+int2 = functools.partial(int, base=2)
+print(int2('1110'))  # 14
+# 在调用函数时，也可以传入其他值
+print(int2('1000', base=10))  # 1000
