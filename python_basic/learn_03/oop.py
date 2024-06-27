@@ -5,6 +5,7 @@
 
 和静态语言不同，Python允许对实例变量绑定任何数据，也就是说，对于两个实例变量，虽然它们都是同一个类的不同实例，但拥有的变量名称都可能不同
 """
+import types
 
 
 class Student(object):  # 类名通常是大写开头的单词，紧接着是(object)，表示该类是从哪个类继承下来的
@@ -124,14 +125,83 @@ run_twice(Timer())  # Start... \n Start...
 # 动态语言的鸭子类型特点决定了继承不像静态语言那样是必须的
 
 # 获取对象信息:获取对象是什么类型、有哪些方法
-# 获取对象类型-type()
+# 获取对象类型-type():返回对应的Class类型
 print(type(123))  # <class 'int'>
 print(type('123'))  # <class 'str'>
 print(type([]))  # <class 'list'>
 print(type(abs))  # <class 'builtin_function_or_method'>
 print(type(b))  # <class '__main__.Animal'>
 
-# 判断继承关系-isinstance()
+# 判断一个对象是否是函数-用types定义的常量
 
-# 获取一个对象的所有属性和方法-dir()
+
+def fn():
+    pass
+
+
+print(type(fn) == types.FunctionType)  # True
+print(type(abs) == types.BuiltinFunctionType)  # True
+print(type(lambda x: x + 1) == types.LambdaType)  # True
+print(type((x for x in range(10))) == types.GeneratorType)  # True
+
+# 判断继承关系(class类型)-isinstance()
+# 总是优先使用isinstance()判断类型，可以将指定类型及其子类“一网打尽”
+print(isinstance(a, list))  # True
+print(isinstance(b, Animal))  # True
+print(isinstance(c, Animal))  # True
+print(isinstance(c, Cat))  # False
+print(isinstance('123', str))  # True
+print(isinstance([1, 2, 3], (list, tuple)))  # True
+
+# 获取一个对象的所有属性和方法-dir():返回一个包含字符串的list
+print(dir('ABC'))  # ['__add__', '__class__', '__contains__', '__delattr__', '__dir__', ...]
+# 类似__xxx__的属性和方法在Python中都是有特殊用途的 len('ABC') 等价于 'ABC'.__len__()
+
+class MyClass(object):
+    def __len__(self):
+        return 100
+
+
+mc = MyClass()
+print(len(mc))  # 100  len()内部就是调用对象的__len__()方法
+
+# 仅仅把属性和方法列出来是不够的，配合getattr()、setattr()以及hasattr()，我们可以直接操作一个对象的状态
+
+
+class MyObject(object):
+    def __init__(self):
+        self.x = 9
+    def power(self):
+        return self.x * self.x
+
+
+obj = MyObject()
+print(hasattr(obj, 'x'))  # 有属性x吗  True
+print(getattr(obj, 'x'))  # 获取属性x  9
+print(setattr(obj, 'y', 10))  # 设置一个属性y=10
+print(getattr(obj, 'y'))  # 10
+# print(getattr(obj, 'z'))  # AttributeError: 'MyObject' object has no attribute 'z'
+print(getattr(obj, 'z', 404))  # 不存在，返回404
+# 方法同属性的使用一致
+print(hasattr(obj, 'power'))  # True
+
+"""
+实例属性和类属性
+Python是动态语言，根据类创建的实例可以任意绑定属性
+"""
+
+
+class Student(object):
+    name = 'Student'
+
+
+s = Student()
+print(s.name)  # Student 无实例属性，向上访问类属性name
+print(Student.name)  # Student
+s.name = 'Smith'  # 动态创建实例属性
+print(s.name)  # Smith 实例属性优先级高于类属性
+print(Student.name)  # Student 类属性并未消失
+del s.name  # 删除实例属性
+print(s.name)  # Student
+# 在编写程序的时候，千万不要对实例属性和类属性使用相同的名字，因为相同名称的实例属性将屏蔽掉类属性
 
