@@ -116,4 +116,46 @@ Python内置的json模块提供了非常完善的Python对象到JSON格式的转
 """
 
 print(json.dumps(d))  # {"name": "tom", "age": 20, "score": 80}  dumps()方法返回一个str，内容就是标准的JSON
+# JSON反序列化为Python对象，用loads()或者对应的load()方法，前者把JSON的字符串反序列化，后者从file-like Object中读取字符串并反序列化
+json_str = '{"name": "tom", "age": 20, "score": 80}'
+print(json.loads(json_str))  # {'name': 'tom', 'age': 20, 'score': 80}
+
+# python的dict可以直接序列化为json，但是一般我们使用class来表示对象-序列化class对象为json
+
+
+class Student(object):
+    def __init__(self, name, age, score):
+        self.name = name
+        self.age = age
+        self.score = score
+
+
+# print(json.dumps(Student('tom', 20, 80)))  # TypeError: Object of type Student is not JSON serializable
+# dumps()方法不知道如何将Student实例变为一个JSON的{}对象
+# 需要为Student专门写一个转换函数，再把函数传进去即可;Student实例首先被student2dict()函数转换成dict，然后再被顺利序列化为JSON
+
+
+def student2dict(s):
+    return {
+        'name': s.name,
+        'age': s.age,
+        'score': s.score
+    }
+
+
+print(json.dumps(Student('tom', 20, 80), default=student2dict))  # {"name": "tom", "age": 20, "score": 80}
+# 通常class的实例都有一个__dict__属性，它就是一个dict，用来存储实例变量
+print(json.dumps(Student('tom', 20, 80), default=lambda obj: obj.__dict__))  # {"name": "tom", "age": 20, "score": 80}
+
+# 把JSON反序列化为一个Student对象实例，loads()方法首先转换出一个dict对象，然后，我们传入的object_hook函数负责把dict转换为Student实例
+
+
+def dict2student(d):
+    return Student(d['name'], d['age'], d['score'])
+
+
+print(json.loads(json_str, object_hook=dict2student))  # <__main__.Student object at 0x0000024703211210>
+
+s = dict(name='小明', age=20)
+print(json.dumps(s, ensure_ascii=True))  # {"name": "\u5c0f\u660e", "age": 20}  所有非 ASCII 字符会被转义
 
