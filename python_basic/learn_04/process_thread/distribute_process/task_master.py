@@ -1,6 +1,6 @@
 # task_master.py
 
-import random, time, queue
+import random, queue
 from multiprocessing import freeze_support
 from multiprocessing.managers import BaseManager
 
@@ -25,11 +25,11 @@ def get_result_queue():
     return result_queue
 
 
-task_queue = queue.Queue()  # 发送人物的queue
+task_queue = queue.Queue()  # 发送任务的queue
 result_queue = queue.Queue()  # 接受结果的queue
 
 
-class QueueManager(BaseManager):  # 继承BaseManager的QueueManager
+class QueueManager(BaseManager):  # 继承BaseManager的QueueManager，用于后面创建管理器
     pass
 
 
@@ -39,22 +39,25 @@ QueueManager.register('get_result_queue', callable=get_result_queue)
 if __name__ == '__main__':
     # Windows下多进程可能出现问题，添加以下代码可以缓解
     freeze_support()
-    # 绑定端口5000，设置验证码 'abc'
+    # 绑定端口5000，设置验证码 'abc'，windows下需要填写IP地址，Linux下默认为本地，地址为空
     manager = QueueManager(address=('127.0.0.1', 5000), authkey=b'abc')
-    # 启动Queue
+    # 启动管理器，启动Queue，监听信息通道
     manager.start()
     # 获得通过网络访问的Queue对象
     task = manager.get_task_queue()
     result = manager.get_result_queue()
     # 放任务进去
     for i in range(10):
-        n = random.randint(0, 10000)
+        n = random.randint(0, 100)  # 返回0-100之间的随机数
         print('Put task %s...' % n)
         task.put(n)
     # 从result队列读取结果
-    for i in range(10):
-        r = result.get(timeout=10)
-        print('Get result %s...' % r)
+    for i in range(11):  # 这里结果队列中取结果设置为11次，总共只有10个任务和10个结果，第10次用量确认队列中是不是已经空了
+        try:
+            r = result.get(timeout=5)  # 每次等待5秒，取结果队列中的值
+            print('Get result %s...' % r)
+        except queue.Empty:
+            print('result queue is empty.')
     # 关闭
     manager.shutdown()
     print('manager exit.')
